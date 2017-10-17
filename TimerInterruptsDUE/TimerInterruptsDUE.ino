@@ -1,9 +1,13 @@
 // Turns
-const int ledPin = 13;
-const int NMAX = 100;
-const int JMAX = 10;
 const unsigned long period = 100;
-const uint32_t freq = 10;
+const uint32_t freq = 1000;
+
+const int bits = 12;
+const int N = (2^bits)-1;
+const double f = 440.0;
+const double Ts = 1/f;
+
+
 
 unsigned long start_time;
 
@@ -26,7 +30,7 @@ void startTimer(Tc *tc, uint32_t channel, IRQn_Type irq, uint32_t frequency) {
 }
 
 void setup(){
-  pinMode(13,OUTPUT);
+
 
   // Start timer. Parameters are:
 
@@ -35,7 +39,7 @@ void setup(){
   // TC3_IRQn: irq number. See table.
   // 40  : frequency (in Hz)
   // The interrupt service routine is TC3_Handler. See table.
-
+  
   startTimer(TC1, 0, TC3_IRQn, freq);
 
   // Paramters table:
@@ -48,33 +52,13 @@ void setup(){
   // TC2, 0, TC6_IRQn  =>  TC6_Handler()
   // TC2, 1, TC7_IRQn  =>  TC7_Handler()
   // TC2, 2, TC8_IRQn  =>  TC8_Handler()
-  start_time = millis();
+
 }
 
 void loop()
 {
-  static boolean l = false;
-  double f1 = 2000.0;
-  double Ts = 1/44100.0;
-  double sum = 0;
-  double sums[JMAX];
-  for (int j=0; j<JMAX; j++)
-  {
-    sums[j] = 0;
+  //analogWriteResolution(bits); 
   
-    for (int i=0; i<NMAX; i++)
-    {
-      double sig = cos(2*PI*f1*i*Ts + random(2*PI));
-      sums[j] += sig;
-    }
-    sum += sums[j];
-  }
-  unsigned int current_time = millis();
-  
-  if (current_time - start_time >= period) {
-    digitalWrite(ledPin, l = !l);
-    start_time = millis();
-  }
 }
 
 //volatile boolean l;
@@ -82,7 +66,12 @@ void loop()
 // This function is called every 1/40 sec.
 void TC3_Handler()
 {
-  static boolean l = false;
+  static uint16_t n = 0;
+  double sig = cos(2.0*PI*f*n*Ts);
+  uint16_t Nsig = (uint16_t)(N/2*(sig + 1.0));
+  analogWrite(DAC0, Nsig);
+  n++;
+  
   // You must do TC_GetStatus to "accept" interrupt
   // As parameters use the first two parameters used in startTimer (TC1, 0 in this case)
   TC_GetStatus(TC1, 0);
